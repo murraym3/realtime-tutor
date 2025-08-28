@@ -16,6 +16,7 @@ const enLine         = document.getElementById('enLine');
 const esLine         = document.getElementById('esLine');
 const botEnLine      = document.getElementById('botEnLine');
 const botEsLine      = document.getElementById('botEsLine');
+const botCorrectionLine = document.getElementById('botCorrectionLine');
 
 const youText        = document.getElementById('youText');
 const historyContainer = document.getElementById('historyContainer');
@@ -113,12 +114,21 @@ function updateConversationHistory() {
     botSrc.textContent = item.bot_src || '';
     botTgt.textContent = item.bot_tgt || '';
 
+    const corrHdr = document.createElement('div');
+    corrHdr.style.color = '#9aa0aa';
+    corrHdr.style.marginTop = '8px';
+    corrHdr.textContent = 'Feedback';
+    const corrText = document.createElement('div');
+    corrText.textContent = item.bot_corrections || '';
+
     row.appendChild(youHdr);
     row.appendChild(youSrc);
     row.appendChild(youTgt);
     row.appendChild(botHdr);
     row.appendChild(botSrc);
     row.appendChild(botTgt);
+    row.appendChild(corrHdr);
+    row.appendChild(corrText);
     historyContainer.appendChild(row);
   });
 }
@@ -145,7 +155,7 @@ function setYouLines(src, tgt) {
   }
 }
 
-function setBotLines(src, tgt) {
+function setBotLines(src, tgt, corrections) {
   const looksSpanish = /[áéíóúñ¿¡]|\bespañol\b|\bgracias\b|\bhola\b|\busted\b|\bseñor\b/i.test(src || '');
   if (looksSpanish) {
     botEnLine.textContent = `[EN] ${tgt || ''}`;
@@ -154,6 +164,7 @@ function setBotLines(src, tgt) {
     botEnLine.textContent = `[EN] ${src || ''}`;
     botEsLine.textContent = `[ES] ${tgt || ''}`;
   }
+  botCorrectionLine.textContent = corrections ? `[Feedback] ${corrections}` : '[Feedback] —';
 }
 
 // ---------- Mic + SR ----------
@@ -260,10 +271,16 @@ translateBtn.addEventListener('click', async () => {
 
   setState(State.TRANSLATING);
   try {
+    const historyMessages = [];
+    conversationHistory.forEach(turn => {
+      if (turn.you_src_raw) historyMessages.push({ role: 'user', content: turn.you_src_raw });
+      if (turn.bot_src_raw) historyMessages.push({ role: 'assistant', content: turn.bot_src_raw });
+    });
+
     const r = await fetch('/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: textToSend, mode: modeSelect.value })
+      body: JSON.stringify({ text: textToSend, mode: modeSelect.value, history: historyMessages })
     });
     const j = await r.json();
 
@@ -277,7 +294,8 @@ translateBtn.addEventListener('click', async () => {
     const b = j?.bot || {};
     const bot_src = `[SRC] ${b.src || ''}`;
     const bot_tgt = `[TGT] ${b.tgt || ''}`;
-    setBotLines(b.src || '', b.tgt || '');
+    const corrections = b.corrections || '';
+    setBotLines(b.src || '', b.tgt || '', corrections);
 
     // Speak bot's ORIGINAL (opposite language) so it feels like a reply
     const botIsSpanish = /[áéíóúñ¿¡]/.test(b.src || '');
@@ -285,7 +303,13 @@ translateBtn.addEventListener('click', async () => {
 
     // Save one combined turn
     conversationHistory.push({
-      you_src, you_tgt, bot_src, bot_tgt
+      you_src,
+      you_tgt,
+      bot_src,
+      bot_tgt,
+      bot_corrections: corrections,
+      you_src_raw: u.src || textToSend,
+      bot_src_raw: b.src || ''
     });
     updateConversationHistory();
     try { localStorage.setItem('rt_history', JSON.stringify(conversationHistory)); } catch {}
