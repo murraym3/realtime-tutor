@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Realtime Translation App</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0b0b10; color:#e6e7eb; }
+    .container { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+    .controls { display:flex; flex-wrap:wrap; gap:10px; margin: 16px 0; align-items:center; }
+    button { background:#1b1e27; color:#e6e7eb; border:1px solid #2a2f3b; border-radius:12px; padding:10px 14px; cursor:pointer; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    select, label { background:#11141a; color:#e6e7eb; border:1px solid #2a2f3b; border-radius:10px; padding:8px 10px; }
+    .status { color:#8b8e98; display:flex; gap:24px; margin: 8px 0 16px; }
+    .subtitles { border:1px solid #2a2f3b; border-radius:16px; padding:16px; background:#11141a; margin-top:12px; }
+    .line { font-size:1.2rem; line-height:1.5; margin:6px 0; white-space:pre-wrap; }
+    .conversation-history { margin-top: 20px; }
+    .history-row { border:1px solid #2a2f3b; border-radius:12px; padding:12px; margin-bottom:10px; background:#0f1218; }
+    .section-title { margin: 14px 0 6px; color:#a8acb6; font-size:0.95rem; text-transform: uppercase; letter-spacing: .04em; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>Realtime Translation App</h1>
+    <p class="muted">Two-way: you ↔ chatbot. Both sides are shown in original + translated.</p>
+
+    <div class="controls">
+      <button id="connectBtn">Connect</button>
+      <button id="micBtn" disabled>Start Mic</button>
+      <button id="translateBtn" disabled>Translate</button>
+      <button id="disconnectBtn" disabled>Disconnect</button>
+
+      <label style="display:inline-flex;align-items:center;gap:6px;">
+        <input type="checkbox" id="speakToggle"> Auto-play speech
+      </label>
+
+      <select id="modeSelect" title="Translation style">
+        <option value="natural" selected>Natural</option>
+        <option value="literal">Literal</option>
+      </select>
+
+      <button id="clearHistoryBtn" title="Clear saved conversation">Clear Conversation</button>
+    </div>
+
+    <div class="status">
+      <div id="connStatus">Status: Disconnected</div>
+      <div id="micStatus">Mic: Off</div>
+    </div>
+
+    <div class="section-title">You</div>
+    <section class="subtitles">
+      <div id="enLine" class="line">[EN] —</div>
+      <div id="esLine" class="line">[ES] —</div>
+    </section>
+
+    <div class="section-title">Chatbot</div>
+    <section class="subtitles">
+      <div id="botEnLine" class="line">[EN] —</div>
+      <div id="botEsLine" class="line">[ES] —</div>
+    </section>
+
+    <section style="margin-top:16px;">
+      <h2>Your transcript</h2>
+      <div id="youText" class="line" style="border:1px dashed #2a2f3b; border-radius:12px; padding:12px; min-height:56px;"></div>
+    </section>
+
+    <section class="conversation-history">
+      <h2>Conversation History</h2>
+      <div id="historyContainer"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

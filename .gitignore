@@ -1,0 +1,13 @@
+# Node / web projects
+node_modules/
+dist/
+build/
+
+# Local environment secrets
+.env
+.env.local
+
+# Editors / OS
+.vscode/
+.DS_Store
+Thumbs.db

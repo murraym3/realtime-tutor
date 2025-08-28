@@ -1,0 +1,24 @@
+{
+  "name": "realtime-translation-app",
+  "version": "1.0.0",
+  "description": "Real-time English-Spanish translation app",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node -r dotenv/config server.js",
+    "dev": "node -r dotenv/config server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "node-fetch": "^3.3.2"
+  },
+  "keywords": [
+    "translation",
+    "openai",
+    "realtime",
+    "speech-to-text"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
