@@ -98,17 +98,17 @@ Return ONLY a JSON object with keys:
 });
 
 // ---------------- NEW: /chat (translate + bot reply) ----------------
-// Body: { text, mode }
+// Body: { text, mode, history }
 // Returns:
 // {
 //   user: { src, tgt, src_lang, tgt_lang },
-//   bot:  { src, tgt, src_lang, tgt_lang }
+//   bot:  { src, tgt, src_lang, tgt_lang, corrections }
 // }
 app.post('/chat', async (req, res) => {
   try {
     if (!API_KEY) return res.status(500).json({ error: 'Missing OPENAI_API_KEY in .env' });
 
-    const { text, mode } = req.body || {};
+    const { text, mode, history } = req.body || {};
     if (!text || !text.trim()) return res.status(400).json({ error: 'Missing text' });
 
     const styleLine = (mode === 'literal')
@@ -117,7 +117,7 @@ app.post('/chat', async (req, res) => {
 
     // JSON schema so the client gets a guaranteed structure
     const jsonSchema = {
-      name: "bilingual_turn",
+      name: "coaching_turn",
       schema: {
         type: "object",
         properties: {
@@ -138,9 +138,10 @@ app.post('/chat', async (req, res) => {
               src: { type: "string" },
               tgt: { type: "string" },
               src_lang: { type: "string", enum: ["en", "es"] },
-              tgt_lang: { type: "string", enum: ["en", "es"] }
+              tgt_lang: { type: "string", enum: ["en", "es"] },
+              corrections: { type: "string" }
             },
-            required: ["src", "tgt", "src_lang", "tgt_lang"],
+            required: ["src", "tgt", "src_lang", "tgt_lang", "corrections"],
             additionalProperties: false
           }
         },
@@ -151,19 +152,22 @@ app.post('/chat', async (req, res) => {
     };
 
     const sys = `
-You are a bilingual assistant for English and Spanish.
+You are a friendly language coach for English and Spanish.
 
-Task:
-1) Detect the user's source language ("en" or "es") from their message.
+If the conversation so far has not made it clear, ask the user what their native language is and which language they are learning.
+
+For each user message:
+1) Detect the user's source language ("en" or "es").
 2) Produce the user's translation into the other language.
-3) Write a concise, friendly chatbot reply in the OTHER language (the user's target language).
-4) Also provide that chatbot reply translated back into the user's original language.
+3) Give a short coaching reply in the user's target language.
+4) Translate your coaching reply back into the user's native language.
+5) Provide concise pronunciation and grammar corrections for the user's target-language text, phrased in the user's native language.
 
 Return JSON ONLY matching the provided schema.
 Guidelines:
 - ${styleLine}
 - Keep meanings accurate and natural.
-- Be helpful and brief in the bot reply (1–2 sentences).
+- Be encouraging and brief in the bot reply (1–2 sentences).
 `.trim();
 
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -179,6 +183,7 @@ Guidelines:
         max_tokens: 220,
         messages: [
           { role: 'system', content: sys },
+          ...((Array.isArray(history) ? history : []).map(m => ({ role: m.role, content: m.content }))),
           { role: 'user',   content: text }
         ]
       })
@@ -213,7 +218,8 @@ Guidelines:
         src: looksSpanish ? '¿En qué más puedo ayudarte?' : 'How else can I help?',
         tgt: looksSpanish ? 'How else can I help?' : '¿En qué más puedo ayudarte?',
         src_lang: looksSpanish ? 'es' : 'en',
-        tgt_lang: looksSpanish ? 'en' : 'es'
+        tgt_lang: looksSpanish ? 'en' : 'es',
+        corrections: looksSpanish ? 'Sin correcciones por ahora.' : 'No corrections yet.'
       };
       return res.json({ user, bot, usage: { inTok, outTok }, estimated_cost: estCost });
     }
